@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page">
+
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="preloader-content">
+            <div class="preloader-icon">
+                <i class="bi bi-shield-lock"></i>
+            </div>
+            <div class="preloader-bar">
+                <div class="preloader-bar-fill"></div>
+            </div>
+            <p class="preloader-text">Cargando...</p>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar-glass" id="navbar">
+        <div class="container d-flex justify-content-between align-items-center py-3">
+            <a href="#" class="navbar-brand d-flex align-items-center gap-2 text-decoration-none">
+                <img src="assets/logo.svg" alt="Carlos Mori" class="navbar-logo">
+                <span class="fw-bold text-dark">Carlos Mori</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <a href="#" class="nav-pill active">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Acceder
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-blobs">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        </div>
+
+        <div class="container position-relative">
+            <div class="row align-items-center min-vh-100 pt-5">
+                <!-- Lado izquierdo: Texto -->
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <div class="hero-content" id="heroContent">
+                        <div class="hero-chip mb-4">
+                            <i class="bi bi-globe2 me-2"></i>Sistema Seguro de Acceso
+                        </div>
+                        <h1 class="hero-title mb-3">
+                            Bienvenido al<br>Portal de Acceso
+                        </h1>
+                        <p class="hero-subtitle mb-4">
+                            <span class="typing-text" id="typingText"></span><span class="typing-cursor">|</span>
+                        </p>
+                        <div class="hero-features">
+                            <div class="feature-item">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Autenticación Segura</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-key-fill"></i>
+                                <span>Gestión de Contraseñas</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-people-fill"></i>
+                                <span>Control de Usuarios</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lado derecho: Formulario Login -->
+                <div class="col-lg-5 offset-lg-1">
+                    <div class="login-card" id="loginCard">
+                        <div class="login-card-header text-center mb-4">
+                            <div class="login-icon-wrapper mb-3">
+                                <div class="pulse-ring ring-1"></div>
+                                <div class="pulse-ring ring-2"></div>
+                                <i class="bi bi-person-circle login-main-icon"></i>
+                            </div>
+                            <h3 class="fw-bold mb-1">Iniciar Sesión</h3>
+                            <p class="text-secondary mb-0">Ingrese sus credenciales para acceder</p>
+                        </div>
+
+                        <form id="loginForm" novalidate>
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="bi bi-person me-1"></i>Usuario
+                                </label>
+                                <div class="input-icon-wrapper">
+                                    <i class="bi bi-person input-icon"></i>
+                                    <input type="text" class="form-control" id="username"
+                                           placeholder="Ingrese su usuario" autocomplete="username" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="bi bi-lock me-1"></i>Contraseña
+                                </label>
+                                <div class="input-icon-wrapper">
+                                    <i class="bi bi-lock input-icon"></i>
+                                    <input type="password" class="form-control" id="password"
+                                           placeholder="Ingrese su contraseña" autocomplete="current-password" required>
+                                    <button type="button" class="toggle-password" id="togglePassword">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="loginError" class="alert alert-danger d-none" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <span id="loginErrorText"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-celeste w-100 py-2" id="btnLogin">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>
+                                <span>Iniciar Sesión</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onda SVG -->
+        <div class="hero-wave">
+            <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                <path d="M0,64L48,58.7C96,53,192,43,288,48C384,53,480,75,576,80C672,85,768,75,864,64C960,53,1056,43,1152,42.7C1248,43,1344,53,1392,58.7L1440,64L1440,120L0,120Z" fill="#ffffff"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Preloader
+            setTimeout(() => {
+                document.getElementById('preloader').classList.add('loaded');
+            }, 1200);
+
+            // Typing effect
+            const phrases = [
+                'Gestiona tu cuenta de forma segura.',
+                'Accede al sistema administrativo.',
+                'Control total en tus manos.'
+            ];
+            typeWriter('typingText', phrases, 80, 60, 2000);
+
+            // Scroll navbar effect
+            window.addEventListener('scroll', () => {
+                const navbar = document.getElementById('navbar');
+                if (window.scrollY > 40) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+            });
+
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+            // Toggle password visibility
+            document.getElementById('togglePassword').addEventListener('click', () => {
+                const input = document.getElementById('password');
+                const icon = document.querySelector('#togglePassword i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.className = 'bi bi-eye-slash';
+                } else {
+                    input.type = 'password';
+                    icon.className = 'bi bi-eye';
+                }
+            });
+
+            // Check if already logged in
+            const token = localStorage.getItem('token');
+            if (token) {
+                verifyAndRedirect(token);
+            }
+        });
+
+        async function verifyAndRedirect(token) {
+            try {
+                const res = await fetch('/api/auth/verify-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.valid) {
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/pages/dashboard.html';
+                }
+            } catch (e) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnLogin');
+            const errorDiv = document.getElementById('loginError');
+            const errorText = document.getElementById('loginErrorText');
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                errorDiv.classList.remove('d-none');
+                errorText.textContent = 'Ingrese usuario y contraseña';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat spin me-2"></i><span>Verificando...</span>';
+            errorDiv.classList.add('d-none');
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    btn.innerHTML = '<i class="bi bi-check-circle me-2"></i><span>¡Bienvenido!</span>';
+                    btn.classList.add('btn-success');
+                    setTimeout(() => {
+                        window.location.href = '/pages/dashboard.html';
+                    }, 800);
+                } else {
+                    errorDiv.classList.remove('d-none');
+                    errorText.textContent = data.message;
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i><span>Iniciar Sesión</span>';
+                }
+            } catch (error) {
+                errorDiv.classList.remove('d-none');
+                errorText.textContent = 'Error de conexión con el servidor';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i><span>Iniciar Sesión</span>';
+            }
+        }
+    </script>
+</body>
+</html>
