@@ -1,0 +1,36 @@
+
+services:
+  - type: web
+    name: carlos-mori
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+    envVars:
+      - key: DB_HOST
+        sync: false
+        value: CHANGE_ME_HOST_EJ_mysql-prod.c.aivencloud.com
+      - key: DB_PORT
+        sync: false
+        value: "3306"
+      - key: DB_USER
+        sync: false
+        value: CHANGE_ME_USUARIO
+      - key: DB_PASSWORD
+        sync: false
+        value: CHANGE_ME_PASSWORD
+      - key: DB_NAME
+        sync: false
+        value: carlos_mori
+      - key: DB_SSL
+        sync: false
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        sync: false
+        value: "8h"
