@@ -129,6 +129,60 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // Tablas del módulo de inventario (columnas dinámicas: cabeceras del archivo importado)
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS inv_inventarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(120) DEFAULT '',
+                columnas JSON DEFAULT NULL,
+                total_columnas INT NOT NULL DEFAULT 0,
+                total_registros INT NOT NULL DEFAULT 0,
+                importado_por VARCHAR(50) DEFAULT NULL,
+                estado ENUM('abierto', 'cerrado') NOT NULL DEFAULT 'abierto',
+                delimitador VARCHAR(5) DEFAULT ',',
+                fecha_cierre DATETIME DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Migración: agregar columna delimitador si falta (tablas creadas antes)
+        const [delimCol] = await conn.query(
+            "SELECT COUNT(*) as count FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'inv_inventarios' AND COLUMN_NAME = 'delimitador'"
+        );
+        if (delimCol[0].count === 0) {
+            await conn.query("ALTER TABLE inv_inventarios ADD COLUMN delimitador VARCHAR(5) DEFAULT ',' AFTER estado");
+        }
+
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS inv_registros (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                inventario_id INT NOT NULL,
+                fila INT NOT NULL DEFAULT 0,
+                datos JSON DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (inventario_id) REFERENCES inv_inventarios(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                KEY idx_inventario (inventario_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Migración suave: si existe una versión anterior con columnas fijas,
+        // se convierten los datos a la nueva estructura JSON
+        const [invCols] = await conn.query(
+            "SELECT COUNT(*) as count FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'inv_inventarios' AND COLUMN_NAME = 'columnas'"
+        );
+        if (invCols[0].count === 0) {
+            const [oldInvCols] = await conn.query(
+                "SELECT COUNT(*) as count FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'inv_inventarios' AND COLUMN_NAME = 'total_registros'"
+            );
+            if (oldInvCols[0].count > 0) {
+                console.log('ℹ️  Migrando inventario a columnas dinámicas...');
+                await conn.query("DROP TABLE IF EXISTS inv_registros");
+                await conn.query("DROP TABLE IF EXISTS inv_inventarios");
+            }
+        }
+
         console.log('✅ Base de datos inicializada correctamente');
     } catch (error) {
         console.error('❌ Error al inicializar la base de datos:', error.message);

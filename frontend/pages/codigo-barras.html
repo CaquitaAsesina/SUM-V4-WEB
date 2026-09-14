@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Códigos de Barras</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        /* ============================================
+           TABLA TIPO EXCEL (módulo códigos de barras)
+           ============================================ */
+        .excel-table {
+            border-collapse: separate !important;
+            border-spacing: 0;
+            width: 100%;
+            min-width: 640px;
+        }
+        .excel-table th,
+        .excel-table td {
+            border-right: 1px solid #dbeafe;
+            border-bottom: 1px solid #dbeafe;
+            padding: 0.55rem 0.75rem;
+            vertical-align: middle;
+            font-size: 0.82rem;
+            white-space: nowrap;
+            max-width: 380px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .excel-table th:first-child,
+        .excel-table td:first-child {
+            border-left: 1px solid #dbeafe;
+        }
+        .excel-table thead th {
+            background: linear-gradient(180deg, #eaf6ff 0%, #dcedfd 100%);
+            color: #0369a1;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            border-bottom: 2px solid #7dd3fc;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .excel-table tbody tr:nth-child(even) td { background: #f8fbff; }
+        .excel-table tbody tr:hover td { background: #e3f2fd; }
+        .excel-wrap {
+            max-height: 65vh;
+            overflow: auto;
+            border: 1px solid #dbeafe;
+            border-radius: 0.75rem;
+            background: #fff;
+        }
+        .excel-table .th-rownum,
+        .excel-table .td-rownum {
+            background: #eef7ff;
+            color: #64748b;
+            font-weight: 600;
+            text-align: center;
+            width: 56px;
+            min-width: 56px;
+            font-size: 0.75rem;
+        }
+        .excel-table thead .th-rownum {
+            background: linear-gradient(180deg, #eaf6ff 0%, #dcedfd 100%);
+        }
+        /* Celda del código de barras generado */
+        .barcode-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .barcode-cell svg {
+            height: 44px;
+            max-width: 300px;
+        }
+        .barcode-pending {
+            color: #94a3b8;
+            font-style: italic;
+            font-size: 0.75rem;
+        }
+        /* Progreso durante generación */
+        .gen-progress {
+            height: 6px;
+            border-radius: 3px;
+            background: #e0f2fe;
+            overflow: hidden;
+        }
+        .gen-progress-bar {
+            height: 100%;
+            background: #0ea5e9;
+            transition: width 0.15s;
+        }
+        /* Cabeceras clicables: selección de columna para el código */
+        .excel-table thead th.th-col {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .excel-table thead th.th-col:hover {
+            background: #d8ecfd;
+        }
+        .excel-table thead th.th-col-selected {
+            background: linear-gradient(180deg, #bae6fd 0%, #a5dcfc 100%);
+            color: #075985;
+            box-shadow: inset 0 -3px 0 #0284c7;
+        }
+        .excel-table td.td-col-selected {
+            background: #f0f9ff !important;
+            box-shadow: inset 2px 0 0 #7dd3fc;
+        }
+        .col-pick-icon {
+            margin-right: 0.3rem;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="dashboard-page">
+
+    <div id="preloader" class="preloader">
+        <div class="preloader-content">
+            <div class="preloader-icon"><i class="bi bi-upc-scan"></i></div>
+            <div class="preloader-bar"><div class="preloader-bar-fill"></div></div>
+            <p class="preloader-text">Cargando códigos de barras...</p>
+        </div>
+    </div>
+
+    <nav class="navbar-glass" id="navbar">
+        <div class="container d-flex justify-content-between align-items-center py-3">
+            <a href="dashboard.html" class="navbar-brand d-flex align-items-center gap-2 text-decoration-none">
+                <img src="../assets/logo.svg" alt="Carlos Mori" class="navbar-logo">
+                <span class="fw-bold text-dark">Carlos Mori</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <a href="dashboard.html" class="nav-pill">
+                    <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                </a>
+                <a href="auditoria.html" class="nav-pill">
+                    <i class="bi bi-clipboard-data me-1"></i>Auditoría
+                </a>
+                <a href="proveedores.html" class="nav-pill">
+                    <i class="bi bi-truck me-1"></i>Proveedores
+                </a>
+                <a href="inventario.html" class="nav-pill">
+                    <i class="bi bi-boxes me-1"></i>Inventario
+                </a>
+                <span class="nav-pill" id="userBadge">
+                    <i class="bi bi-person-circle me-1"></i><span id="userName">Usuario</span>
+                </span>
+                <a href="cambiar-contrasena.html" class="nav-pill">
+                    <i class="bi bi-key me-1"></i>Contraseña
+                </a>
+                <button class="nav-pill btn-logout" id="btnLogout">
+                    <i class="bi bi-box-arrow-right me-1"></i>Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container py-4">
+
+            <!-- Tabs de navegación -->
+            <div class="module-tabs mb-4" id="moduleTabs">
+                <button class="module-tab active" data-tab="barras">
+                    <i class="bi bi-upc-scan me-1"></i>Códigos de Barras
+                </button>
+            </div>
+
+            <!-- ==================== CÓDIGOS DE BARRAS ==================== -->
+            <div class="tab-content-section" id="tabBarras">
+                <div class="card-table mb-3">
+                    <div class="card-header-custom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-upc-scan me-2"></i>Generar Código de Barras
+                            <span class="badge badge-pill bg-secondary-soft text-secondary ms-2" id="barCount">0 códigos</span>
+                            <span class="badge badge-pill bg-info-soft text-info ms-1 d-none" id="barSource"></span>
+                        </h5>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-celeste btn-sm" id="btnImportar">
+                                <i class="bi bi-upload me-1"></i>Importar Excel
+                            </button>
+                            <button class="btn btn-success btn-sm" id="btnGenerar" disabled>
+                                <i class="bi bi-magic me-1"></i>Generar
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" id="btnExportarPdf" disabled>
+                                <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" id="btnExportarExcel" disabled>
+                                <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="px-3 pb-2">
+                        <small class="text-secondary" id="barHint">
+                            <i class="bi bi-info-circle me-1"></i>Importe cualquier Excel (.xlsx / .xls / .csv) con <strong>cualquier cantidad de columnas</strong>: todas se mostrarán en la tabla. Haga <strong>clic en una cabecera</strong> para elegir de qué columna se generan los códigos, presione "Generar" y exporte: en PDF salen <strong>8 etiquetas por página</strong> (código de barras grande + su código debajo) y en Excel cada etiqueta es una fila con el código en grande y la imagen al lado.
+                        </small>
+                        <div class="gen-progress mt-2 d-none" id="genProgress">
+                            <div class="gen-progress-bar" id="genProgressBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-table">
+                    <div class="excel-wrap">
+                        <table class="table table-hover mb-0 excel-table">
+                            <thead id="barrasHead"></thead>
+                            <tbody id="barrasTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state d-none" id="emptyBarras">
+                        <i class="bi bi-inbox"></i>
+                        <p id="emptyText">No hay códigos importados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Importar Excel -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-custom">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-upload me-2"></i>Importar Excel de Códigos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border small mb-3">
+                        <div class="fw-semibold mb-1"><i class="bi bi-list-check me-1"></i>Formato aceptado:</div>
+                        Cualquier archivo <strong>.xlsx / .xls / .csv</strong>, con <strong>cualquier cantidad de columnas</strong>: todas las columnas se mostrarán en la tabla. La cabecera (si existe) se detecta automáticamente. Después elija con un clic en la cabecera qué columna se usa para generar los códigos.
+                    </div>
+                    <div class="mb-2">
+                        <label for="excelFile" class="form-label">Archivo Excel *</label>
+                        <input type="file" class="form-control" id="excelFile" accept=".xlsx,.xls,.csv,text/csv,text/plain">
+                    </div>
+                    <div class="text-secondary small" id="fileInfo"></div>
+                    <div id="importError" class="alert alert-danger d-none mt-3 mb-0" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="importErrorText"></span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-celeste" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-celeste" id="btnConfirmImport" disabled>
+                        <i class="bi bi-upload me-1"></i>Cargar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmación -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-confirm">
+            <div class="modal-content modal-custom modal-confirm-content">
+                <button type="button" class="btn-close modal-confirm-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <div class="modal-confirm-body">
+                    <div class="modal-confirm-icon" id="confirmIcon">
+                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                    </div>
+                    <div class="modal-confirm-text">
+                        <h6 class="fw-bold mb-1" id="confirmTitle">¿Confirmar acción?</h6>
+                        <p class="text-secondary small mb-0" id="confirmText">Esta acción no se puede deshacer.</p>
+                    </div>
+                </div>
+                <div class="modal-confirm-actions">
+                    <button type="button" class="btn btn-outline-celeste btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="btnConfirmAccept"><i class="bi bi-trash me-1"></i><span>Eliminar</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SheetJS: leer Excel (.xlsx/.xls/.csv) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- JsBarcode: generar códigos CODE128 en la tabla -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <!-- jsPDF: exportar PDF con etiquetas de códigos -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <!-- ExcelJS: exportar Excel con imágenes de códigos embebidas -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="../js/app.js?v=2"></script>
+    <script src="../js/codigo-barras.js?v=3"></script>
+</body>
+</html>

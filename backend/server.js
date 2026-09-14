@@ -6,6 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./src/routes/authRoutes');
 const auditRoutes = require('./src/routes/auditRoutes');
 const proveedorRoutes = require('./src/routes/proveedorRoutes');
+const inventarioRoutes = require('./src/routes/inventarioRoutes');
 const initDatabase = require('./src/config/init');
 
 const app = express();
@@ -16,8 +17,8 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // DEBUG: Log every request
 app.use((req, res, next) => {
@@ -28,6 +29,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/proveedores', proveedorRoutes);
+app.use('/api/inventario', inventarioRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
