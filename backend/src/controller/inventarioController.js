@@ -47,6 +47,16 @@ class InventarioController {
         }
     }
 
+    async limpiar(req, res) {
+        try {
+            const result = await inventarioService.limpiar();
+            return res.status(result.success ? 200 : 400).json(result);
+        } catch (error) {
+            console.error('Limpiar inventario error:', error);
+            return res.status(500).json({ success: false, message: 'Error interno del servidor' });
+        }
+    }
+
     async cerrar(req, res) {
         try {
             const result = await inventarioService.cerrarInventario();

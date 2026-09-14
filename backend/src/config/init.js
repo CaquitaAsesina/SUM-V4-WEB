@@ -183,6 +183,35 @@ async function initDatabase() {
             }
         }
 
+        // Tablas del módulo de códigos de barras (lote único: cada importación reemplaza al anterior)
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS cod_codigos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(120) DEFAULT '',
+                columnas JSON DEFAULT NULL,
+                total_columnas INT NOT NULL DEFAULT 0,
+                total_registros INT NOT NULL DEFAULT 0,
+                col_codigo INT NOT NULL DEFAULT 0,
+                importado_por VARCHAR(50) DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await conn.query(`
+            CREATE TABLE IF NOT EXISTS cod_registros (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                lote_id INT NOT NULL,
+                fila INT NOT NULL DEFAULT 0,
+                codigo VARCHAR(255) DEFAULT '',
+                datos JSON DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (lote_id) REFERENCES cod_codigos(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                KEY idx_lote (lote_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         console.log('✅ Base de datos inicializada correctamente');
     } catch (error) {
         console.error('❌ Error al inicializar la base de datos:', error.message);

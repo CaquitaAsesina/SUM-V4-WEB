@@ -17,6 +17,9 @@ router.post('/importar', (req, res) => inventarioController.importar(req, res));
 router.put('/registros/:id', registrosEditorMiddleware, (req, res) => inventarioController.editarRegistro(req, res));
 router.delete('/registros/:id', registrosEditorMiddleware, (req, res) => inventarioController.eliminarRegistro(req, res));
 
+// Limpiar: elimina el inventario actual completo (el rol registrador no puede)
+router.delete('/', registrosEditorMiddleware, (req, res) => inventarioController.limpiar(req, res));
+
 // Cerrar inventario (cualquier usuario autenticado; habilita exportar)
 router.post('/cerrar', (req, res) => inventarioController.cerrar(req, res));
 

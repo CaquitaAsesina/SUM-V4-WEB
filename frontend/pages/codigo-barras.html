@@ -187,6 +187,9 @@
                             <button class="btn btn-success btn-sm" id="btnGenerar" disabled>
                                 <i class="bi bi-magic me-1"></i>Generar
                             </button>
+                            <button class="btn btn-outline-danger btn-sm" id="btnLimpiar" disabled>
+                                <i class="bi bi-eraser-fill me-1"></i>Limpiar
+                            </button>
                             <button class="btn btn-outline-success btn-sm" id="btnExportarPdf" disabled>
                                 <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
                             </button>
@@ -197,7 +200,7 @@
                     </div>
                     <div class="px-3 pb-2">
                         <small class="text-secondary" id="barHint">
-                            <i class="bi bi-info-circle me-1"></i>Importe cualquier Excel (.xlsx / .xls / .csv) con <strong>cualquier cantidad de columnas</strong>: todas se mostrarán en la tabla. Haga <strong>clic en una cabecera</strong> para elegir de qué columna se generan los códigos, presione "Generar" y exporte: en PDF salen <strong>8 etiquetas por página</strong> (código de barras grande + su código debajo) y en Excel cada etiqueta es una fila con el código en grande y la imagen al lado.
+                            <i class="bi bi-info-circle me-1"></i>Importe cualquier Excel (.xlsx / .xls / .csv) con <strong>cualquier cantidad de columnas</strong>: todas se mostrarán en la tabla. Haga <strong>clic en una cabecera</strong> para elegir de qué columna se generan los códigos, presione "Generar" y exporte: en PDF salen <strong>8 etiquetas por página</strong> (código de barras grande + su código debajo) y en Excel cada etiqueta es una fila con el código en grande y la imagen al lado. Los registros <strong>se guardan en el servidor</strong>: cada importación reemplaza a la anterior.
                         </small>
                         <div class="gen-progress mt-2 d-none" id="genProgress">
                             <div class="gen-progress-bar" id="genProgressBar" style="width: 0%"></div>
@@ -288,6 +291,6 @@
     <!-- ExcelJS: exportar Excel con imágenes de códigos embebidas -->
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="../js/app.js?v=2"></script>
-    <script src="../js/codigo-barras.js?v=3"></script>
+    <script src="../js/codigo-barras.js?v=4"></script>
 </body>
 </html>

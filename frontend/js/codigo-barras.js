@@ -4,6 +4,9 @@
    columnas se muestran), elegir con un clic qué columna
    se usa para generar códigos CODE128 (JsBarcode),
    exportar PDF (jsPDF) y Excel (ExcelJS con imágenes).
+   Los registros se PERSISTEN en el backend
+   (/api/codigos-barras): sobreviven a recargas de página
+   y cada importación REEMPLAZA al lote anterior.
    ============================================ */
 
 const token = localStorage.getItem('token');
@@ -43,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnGenerar').addEventListener('click', generarCodigos);
     document.getElementById('btnExportarPdf').addEventListener('click', exportarPDF);
     document.getElementById('btnExportarExcel').addEventListener('click', exportarExcel);
+    document.getElementById('btnLimpiar').addEventListener('click', limpiarCodigos);
 
     // Clic en una cabecera = usar esa columna para los códigos de barras
     document.getElementById('barrasHead').addEventListener('click', (e) => {
@@ -53,8 +57,96 @@ document.addEventListener('DOMContentLoaded', () => {
         selectColumna(idx);
     });
 
-    render();
+    // Cargar el lote persistido en el backend (sobrevive recargas)
+    cargarCodigos();
 });
+
+async function api(url, options = {}) {
+    const headersOpt = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+    const fetchOptions = { ...options, headers: headersOpt };
+    if (fetchOptions.body && typeof fetchOptions.body !== 'string') {
+        fetchOptions.body = JSON.stringify(fetchOptions.body);
+    }
+    const res = await fetch(url, fetchOptions);
+    return res;
+}
+
+// ========================
+// CARGA DESDE EL BACKEND (lote persistido)
+// ========================
+async function cargarCodigos() {
+    try {
+        const res = await api('/api/codigos-barras');
+        const data = await res.json();
+        if (data.success) {
+            headers = [];
+            colCodigo = 0;
+            archivoNombre = null;
+            codigoRows = [];
+
+            if (data.lote) {
+                let cols = data.lote.columnas;
+                if (typeof cols === 'string') {
+                    try { cols = JSON.parse(cols); } catch (e) { cols = []; }
+                }
+                headers = Array.isArray(cols) ? cols : [];
+                colCodigo = data.lote.col_codigo || 0;
+                archivoNombre = data.lote.nombre || null;
+
+                codigoRows = (data.registros || []).map(r => {
+                    let datos = r.datos;
+                    if (typeof datos === 'string') {
+                        try { datos = JSON.parse(datos); } catch (e) { datos = []; }
+                    }
+                    if (!Array.isArray(datos)) datos = [];
+                    return { id: r.id, datos, codigo: r.codigo ?? datos[colCodigo] ?? '', barDataUrl: null, barBigUrl: null, error: null };
+                });
+            }
+
+            // Los códigos de barras se regeneran con "Generar" (no se persisten las imágenes)
+            document.getElementById('btnExportarPdf').disabled = true;
+            document.getElementById('btnExportarExcel').disabled = true;
+            render();
+        } else {
+            showToast(data.message || 'Error al cargar los códigos', 'error');
+        }
+    } catch (e) {
+        showToast('Error de conexión', 'error');
+    }
+}
+
+// ========================
+// LIMPIAR: elimina todo el lote (backend + vista)
+// ========================
+function limpiarCodigos() {
+    if (codigoRows.length === 0) {
+        showToast('No hay códigos que limpiar', 'info');
+        return;
+    }
+    openConfirm({
+        title: '¿Limpiar códigos?',
+        message: `Se eliminarán los ${codigoRows.length} registros importados. Esta acción no se puede deshacer.`,
+        acceptText: 'Limpiar',
+        acceptIcon: 'bi-eraser-fill',
+        onConfirm: async () => {
+            try {
+                const res = await api('/api/codigos-barras', { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    await cargarCodigos();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (e) {
+                showToast('Error de conexión', 'error');
+            }
+        }
+    });
+}
 
 function switchTab(tab) {
     document.querySelectorAll('.module-tab').forEach(t => t.classList.remove('active'));
@@ -146,12 +238,19 @@ async function cargarExcel() {
             return;
         }
 
-        colCodigo = 0;
-        codigoRows = filasDatos.map(datos => ({ datos, codigo: datos[0], barDataUrl: null, error: null }));
-        archivoNombre = file.name.replace(/\.(xlsx|xls|csv)$/i, '');
+        // Enviar al backend: cada importación REEMPLAZA el lote anterior
+        const res = await api('/api/codigos-barras/importar', {
+            method: 'POST',
+            body: { archivo: file.name.replace(/\.(xlsx|xls|csv)$/i, ''), filas: filasDatos, headers }
+        });
+        const data = await res.json();
+        if (!data.success) {
+            showImportError(data.message || 'No se pudo importar el archivo.');
+            return;
+        }
 
         bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
-        render();
+        await cargarCodigos(); // recargar desde el backend (lote nuevo)
         showToast(`${codigoRows.length} filas y ${headers.length} columnas cargadas de ${file.name}. Presione "Generar".`, 'success');
     } catch (err) {
         showImportError('No se pudo leer el archivo. Verifique que sea un Excel o CSV válido.');
@@ -169,7 +268,23 @@ function showImportError(msg) {
 // ========================
 // SELECCIÓN DE COLUMNA PARA EL CÓDIGO
 // ========================
-function selectColumna(idx) {
+async function selectColumna(idx) {
+    // Persistir la columna elegida en el backend
+    try {
+        const res = await api('/api/codigos-barras/columna', {
+            method: 'PUT',
+            body: { col: idx }
+        });
+        const data = await res.json();
+        if (!data.success) {
+            showToast(data.message, 'error');
+            return;
+        }
+    } catch (e) {
+        showToast('Error de conexión', 'error');
+        return;
+    }
+
     colCodigo = idx;
     // Cambiar de columna invalida los códigos ya generados
     codigoRows.forEach(r => {
@@ -334,6 +449,7 @@ function actualizarBarra() {
     const countBadge = document.getElementById('barCount');
     const sourceBadge = document.getElementById('barSource');
     const btnGenerar = document.getElementById('btnGenerar');
+    const btnLimpiar = document.getElementById('btnLimpiar');
 
     const generados = codigoRows.filter(r => r.barDataUrl).length;
     countBadge.textContent = codigoRows.length === 0
@@ -348,6 +464,7 @@ function actualizarBarra() {
     }
 
     btnGenerar.disabled = codigoRows.length === 0;
+    btnLimpiar.disabled = codigoRows.length === 0;
 }
 
 // ========================

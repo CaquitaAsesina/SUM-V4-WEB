@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('csvFile').addEventListener('change', onFileSelected);
     document.getElementById('btnConfirmImport').addEventListener('click', importarCSV);
     document.getElementById('btnCerrar').addEventListener('click', cerrarInventario);
+    document.getElementById('btnLimpiar').addEventListener('click', limpiarInventario);
     document.getElementById('btnExportar').addEventListener('click', exportarCSV);
     document.getElementById('btnGuardarEdicion').addEventListener('click', guardarEdicion);
 
@@ -160,6 +161,7 @@ function actualizarBarra() {
     btnCerrar.disabled = !(hayInventario && !cerrado);
     btnExportar.disabled = !cerrado;
     btnImportar.disabled = hayInventario && !cerrado;
+    document.getElementById('btnLimpiar').disabled = !hayInventario;
 
     if (!hayInventario) {
         hint.innerHTML = '<i class="bi bi-info-circle me-1"></i>Importe un archivo Excel o CSV: la primera fila será la cabecera (cualquier cantidad de columnas). La exportación se habilita al cerrar el inventario.';
@@ -502,6 +504,33 @@ function deleteRegistro(id) {
         onConfirm: async () => {
             try {
                 const res = await api(`/api/inventario/registros/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    cargarInventario();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (e) {
+                showToast('Error de conexión', 'error');
+            }
+        }
+    });
+}
+
+// ========================
+// LIMPIAR INVENTARIO (elimina el inventario actual completo)
+// ========================
+function limpiarInventario() {
+    if (!inventarioActual) return;
+    openConfirm({
+        title: '¿Limpiar inventario?',
+        message: `Se eliminará el inventario "${inventarioActual.nombre || 'actual'}" con sus ${allRegistros.length} registros. Esta acción no se puede deshacer.`,
+        acceptText: 'Limpiar',
+        acceptIcon: 'bi-eraser-fill',
+        onConfirm: async () => {
+            try {
+                const res = await api('/api/inventario', { method: 'DELETE' });
                 const data = await res.json();
                 if (data.success) {
                     showToast(data.message, 'success');

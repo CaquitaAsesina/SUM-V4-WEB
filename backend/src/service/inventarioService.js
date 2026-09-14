@@ -280,6 +280,21 @@ class InventarioService {
     }
 
     // ========================
+    // LIMPIAR: elimina el inventario actual y todos sus registros
+    // ========================
+    async limpiar() {
+        const inventario = await this.obtenerActual();
+        if (!inventario) {
+            return { success: true, message: 'No hay inventario que limpiar' };
+        }
+
+        // La FK tiene ON DELETE CASCADE: basta borrar el inventario
+        await pool.query('DELETE FROM inv_registros WHERE inventario_id = ?', [inventario.id]);
+        await pool.query('DELETE FROM inv_inventarios WHERE id = ?', [inventario.id]);
+        return { success: true, message: 'Inventario eliminado correctamente' };
+    }
+
+    // ========================
     // CERRAR INVENTARIO
     // ========================
     async cerrarInventario() {
