@@ -207,6 +207,97 @@ class AuditService {
         }
     }
 
+    // ========================
+    // CREAR VARIOS REGISTROS A LA VEZ (mismo área, N productos)
+    // Secuencia de códigos calculada en transacción para que
+    // no haya huecos ni duplicados entre usuarios simultáneos
+    // ========================
+    async crearRegistrosLote(areaId, productos) {
+        if (!areaId) return { success: false, message: 'Debe seleccionar un area' };
+        if (!Array.isArray(productos) || productos.length === 0) {
+            return { success: false, message: 'Debe agregar al menos un producto' };
+        }
+
+        // Normalizar y validar líneas: [{ producto_id, cantidad }]
+        const lineas = [];
+        const vistos = new Set();
+        for (const p of productos) {
+            const pid = parseInt(p.producto_id, 10);
+            const cant = parseInt(p.cantidad, 10);
+            if (!pid || pid < 1) return { success: false, message: 'Hay líneas sin producto seleccionado' };
+            if (!cant || cant < 1) return { success: false, message: 'Todas las cantidades deben ser al menos 1' };
+            if (vistos.has(pid)) return { success: false, message: 'Hay productos repetidos en la lista; combine las cantidades en una sola línea' };
+            vistos.add(pid);
+            lineas.push({ producto_id: pid, cantidad: cant });
+        }
+
+        const conn = await pool.getConnection();
+        try {
+            await conn.beginTransaction();
+
+            const [area] = await conn.query('SELECT id FROM audit_areas WHERE id = ?', [areaId]);
+            if (area.length === 0) {
+                await conn.rollback();
+                return { success: false, message: 'Area no encontrada' };
+            }
+
+            // Validar que todos los productos existan
+            const ids = lineas.map(l => l.producto_id);
+            const [prods] = await conn.query(
+                `SELECT id, sku FROM audit_productos WHERE id IN (${ids.map(() => '?').join(',')})`,
+                ids
+            );
+            if (prods.length !== ids.length) {
+                await conn.rollback();
+                return { success: false, message: 'Uno o más productos no existen' };
+            }
+
+            // Secuencia base: registros de hoy del área + 1
+            const [count] = await conn.query(
+                `SELECT COUNT(*) as count FROM audit_registros r
+                 JOIN audit_areas a ON r.area_id = a.id
+                 WHERE r.area_id = ? AND DATE(r.fecha) = CURDATE()`,
+                [areaId]
+            );
+            let secuencia = count[0].count;
+
+            const prefijo = area.length > 0 ? await this.obtenerPrefijoArea(areaId, conn) : '';
+            const now = new Date();
+            const dia = String(now.getDate()).padStart(2, '0');
+            const mes = String(now.getMonth() + 1).padStart(2, '0');
+            const anio = String(now.getFullYear()).substring(2);
+            const fechaStr = `${dia}-${mes}-${anio}`;
+
+            const insertados = [];
+            for (const linea of lineas) {
+                secuencia++;
+                const codigo = `AU-${prefijo}-${fechaStr}-${String(secuencia).padStart(2, '0')}`;
+                const [result] = await conn.query(
+                    'INSERT INTO audit_registros (codigo, area_id, producto_id, cantidad, fecha, fecha_modificacion) VALUES (?, ?, ?, ?, NOW(), NOW())',
+                    [codigo, areaId, linea.producto_id, linea.cantidad]
+                );
+                insertados.push({ id: result.insertId, codigo, producto_id: linea.producto_id, cantidad: linea.cantidad });
+            }
+
+            await conn.commit();
+            return {
+                success: true,
+                message: `${insertados.length} registro${insertados.length > 1 ? 's' : ''} creado${insertados.length > 1 ? 's' : ''} exitosamente`,
+                registros: insertados
+            };
+        } catch (error) {
+            await conn.rollback();
+            throw error;
+        } finally {
+            conn.release();
+        }
+    }
+
+    async obtenerPrefijoArea(areaId, conn) {
+        const [area] = await conn.query('SELECT nombre FROM audit_areas WHERE id = ?', [areaId]);
+        return area.length > 0 ? area[0].nombre.substring(0, 3).toUpperCase() : 'XXX';
+    }
+
     async editarRegistro(id, areaId, productoId, cantidad) {
         if (!areaId) return { success: false, message: 'Debe seleccionar un area' };
         if (!productoId) return { success: false, message: 'Debe seleccionar un producto' };

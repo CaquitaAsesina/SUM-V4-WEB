@@ -23,6 +23,8 @@ router.delete('/productos/:id', adminMiddleware, (req, res) => auditController.e
 router.get('/registros', (req, res) => auditController.listarRegistros(req, res));
 router.get('/registros/:id', (req, res) => auditController.obtenerRegistro(req, res));
 router.post('/registros', (req, res) => auditController.crearRegistro(req, res));
+// Crear varios registros a la vez (mismo área, N productos)
+router.post('/registros/lote', (req, res) => auditController.crearRegistrosLote(req, res));
 router.put('/registros/:id', registrosEditorMiddleware, (req, res) => auditController.editarRegistro(req, res));
 router.delete('/registros/:id', registrosEditorMiddleware, (req, res) => auditController.eliminarRegistro(req, res));
 

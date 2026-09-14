@@ -123,6 +123,17 @@ class AuditController {
         }
     }
 
+    async crearRegistrosLote(req, res) {
+        try {
+            const { area_id, productos } = req.body;
+            const result = await auditService.crearRegistrosLote(area_id, productos);
+            return res.status(result.success ? 201 : 400).json(result);
+        } catch (error) {
+            console.error('Crear registros lote error:', error);
+            return res.status(500).json({ success: false, message: 'Error interno del servidor' });
+        }
+    }
+
     async editarRegistro(req, res) {
         try {
             const { id } = req.params;

@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnNuevoRegistro').addEventListener('click', () => openRegistroModal());
     document.getElementById('btnGuardarRegistro').addEventListener('click', guardarRegistro);
     document.getElementById('btnExportExcel').addEventListener('click', exportarExcel);
+    document.getElementById('btnAgregarLinea').addEventListener('click', () => agregarLineaProducto());
     document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
 
     document.getElementById('filterDesde').addEventListener('change', loadRegistros);
@@ -69,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         searchTimer = setTimeout(loadRegistros, 300);
     });
     initSearchableSelect('areaSearchInput', 'areaDropdown', 'registroAreaId', () => allAreas, 'nombre');
-    initSearchableSelect('productoSearchInput', 'productoDropdown', 'registroProductoId', () => allProductos, 'nombre', true);
+    // El selector de producto ahora es POR LÍNEA (se inicializa en agregarLineaProducto)
 
     // Restricciones por rol
     if (!esAdmin) {
@@ -353,25 +354,124 @@ function openRegistroModal(registro = null) {
     const isEdit = registro && typeof registro === 'object' && !(registro instanceof Event) && registro.id != null;
     document.getElementById('registroForm').reset();
     document.getElementById('registroId').value = '';
-    document.getElementById('registroSku').value = '';
     document.getElementById('areaSearchInput').value = '';
-    document.getElementById('productoSearchInput').value = '';
     document.getElementById('registroAreaId').value = '';
-    document.getElementById('registroProductoId').value = '';
+
+    // Construir la primera línea de producto (y las demás si vienen de un registro)
+    const container = document.getElementById('lineasProductos');
+    container.innerHTML = '';
 
     if (isEdit) {
         document.getElementById('registroModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Registro';
         document.getElementById('registroId').value = registro.id;
         document.getElementById('registroAreaId').value = registro.area_id;
         document.getElementById('areaSearchInput').value = registro.area_nombre;
-        document.getElementById('registroProductoId').value = registro.producto_id;
-        document.getElementById('productoSearchInput').value = registro.producto_nombre;
-        document.getElementById('registroSku').value = registro.sku;
-        document.getElementById('registroCantidad').value = registro.cantidad;
+        // En edición solo se permite tocar esa línea (un registro = un producto)
+        agregarLineaProducto({ id: registro.producto_id, nombre: registro.producto_nombre, sku: registro.sku }, registro.cantidad, true);
     } else {
         document.getElementById('registroModalTitle').innerHTML = '<i class="bi bi-clipboard-plus me-2"></i>Nuevo Registro';
+        agregarLineaProducto();
     }
     new bootstrap.Modal(document.getElementById('registroModal')).show();
+}
+
+// ========================
+// LÍNEAS DE PRODUCTO (varios productos a la vez)
+// ========================
+function agregarLineaProducto(prod = null, cantidad = 1, bloqueada = false) {
+    const container = document.getElementById('lineasProductos');
+    const idx = container.children.length;
+
+    const div = document.createElement('div');
+    div.className = 'linea-producto mb-2 p-2 border rounded position-relative';
+    div.innerHTML = `
+        <button type="button" class="btn-close btn-remove-linea ${idx === 0 ? 'd-none' : ''}" title="Quitar este producto" aria-label="Quitar"></button>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-7">
+                <label class="form-label small mb-1">Producto</label>
+                <div class="searchable-select">
+                    <input type="text" class="form-control linea-prod-input" placeholder="Escriba para buscar producto..." autocomplete="off" ${bloqueada ? 'readonly' : ''}>
+                    <input type="hidden" class="linea-prod-id">
+                    <div class="searchable-dropdown d-none linea-prod-dropdown"></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">SKU</label>
+                <input type="text" class="form-control linea-prod-sku" readonly placeholder="—" style="background:#f1f5f9">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Cantidad</label>
+                <input type="number" class="form-control linea-cant" min="1" value="${cantidad || 1}">
+            </div>
+        </div>
+    `;
+    container.appendChild(div);
+
+    // Quitar línea
+    div.querySelector('.btn-remove-linea').addEventListener('click', () => {
+        div.remove();
+        // La primera línea nunca debe quedar sin botón de quitar si hay más de una
+        const lineas = container.querySelectorAll('.linea-producto');
+        lineas.forEach((l, i) => {
+            l.querySelector('.btn-remove-linea').classList.toggle('d-none', lineas.length === 1);
+        });
+    });
+
+    if (prod) {
+        div.querySelector('.linea-prod-id').value = prod.id;
+        div.querySelector('.linea-prod-input').value = prod.nombre;
+        div.querySelector('.linea-prod-sku').value = prod.sku || '';
+    }
+
+    initLineaProductoSelect(div);
+    return div;
+}
+
+// Selector buscable de producto para una línea específica
+function initLineaProductoSelect(linea) {
+    const input = linea.querySelector('.linea-prod-input');
+    const dropdown = linea.querySelector('.linea-prod-dropdown');
+    const hidden = linea.querySelector('.linea-prod-id');
+    const skuField = linea.querySelector('.linea-prod-sku');
+
+    input.addEventListener('input', () => {
+        hidden.value = '';
+        skuField.value = '';
+        const q = input.value.toLowerCase().trim();
+        if (q.length === 0) { dropdown.classList.add('d-none'); return; }
+
+        const filtered = allProductos.filter(p =>
+            p.nombre.toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)
+        );
+        if (filtered.length === 0) { dropdown.classList.add('d-none'); return; }
+
+        dropdown.innerHTML = filtered.map(p => `
+            <div class="searchable-item" data-id="${p.id}" data-name="${p.nombre}" data-sku="${p.sku || ''}">
+                <span>${p.nombre}</span>
+                ${p.sku ? `<small class="text-secondary">${p.sku}</small>` : ''}
+            </div>
+        `).join('');
+        dropdown.classList.remove('d-none');
+
+        dropdown.querySelectorAll('.searchable-item').forEach(el => {
+            el.addEventListener('click', () => {
+                hidden.value = el.dataset.id;
+                input.value = el.dataset.name;
+                skuField.value = el.dataset.sku;
+                dropdown.classList.add('d-none');
+            });
+        });
+    });
+
+    input.addEventListener('focus', () => {
+        if (input.value.trim().length > 0) input.dispatchEvent(new Event('input'));
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('d-none');
+        }
+    });
 }
 
 async function editRegistro(id) {
@@ -404,17 +504,53 @@ async function guardarRegistro() {
     const rawId = document.getElementById('registroId').value;
     const id = rawId && rawId !== 'undefined' && !isNaN(parseInt(rawId, 10)) ? parseInt(rawId, 10) : '';
     const areaId = parseInt(document.getElementById('registroAreaId').value);
-    const productoId = parseInt(document.getElementById('registroProductoId').value);
-    const cantidad = parseInt(document.getElementById('registroCantidad').value);
 
     if (!areaId) { showToast('Seleccione un área', 'error'); return; }
-    if (!productoId) { showToast('Seleccione un producto', 'error'); return; }
-    if (!cantidad || cantidad < 1) { showToast('La cantidad debe ser al menos 1', 'error'); return; }
 
+    // Recolectar todas las líneas de producto
+    const lineas = [];
+    for (const linea of document.querySelectorAll('#lineasProductos .linea-producto')) {
+        const pid = parseInt(linea.querySelector('.linea-prod-id').value);
+        const cant = parseInt(linea.querySelector('.linea-cant').value);
+        lineas.push({ producto_id: pid || 0, cantidad: cant || 0 });
+    }
+
+    if (id) {
+        // EDICIÓN: un registro = un producto (usa la primera línea)
+        if (!lineas[0].producto_id) { showToast('Seleccione un producto', 'error'); return; }
+        if (!lineas[0].cantidad || lineas[0].cantidad < 1) { showToast('La cantidad debe ser al menos 1', 'error'); return; }
+        try {
+            const res = await api(`/api/audit/registros/${id}`, {
+                method: 'PUT',
+                body: { area_id: areaId, producto_id: lineas[0].producto_id, cantidad: lineas[0].cantidad }
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('registroModal')).hide();
+                loadRegistros();
+            } else { showToast(data.message, 'error'); }
+        } catch (e) { showToast('Error de conexión', 'error'); }
+        return;
+    }
+
+    // NUEVO: varios productos a la vez
+    if (lineas.length === 0) { showToast('Agregue al menos un producto', 'error'); return; }
+    const faltante = lineas.find(l => !l.producto_id);
+    if (faltante) { showToast('Hay líneas sin producto seleccionado', 'error'); return; }
+    const malaCantidad = lineas.find(l => !l.cantidad || l.cantidad < 1);
+    if (malaCantidad) { showToast('Todas las cantidades deben ser al menos 1', 'error'); return; }
+    const repetido = lineas.some((l, i) => lineas.findIndex(x => x.producto_id === l.producto_id) !== i);
+    if (repetido) { showToast('Hay productos repetidos: combine las cantidades en una sola línea', 'error'); return; }
+
+    const btn = document.getElementById('btnGuardarRegistro');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Guardando...';
     try {
-        const url = id ? `/api/audit/registros/${id}` : '/api/audit/registros';
-        const method = id ? 'PUT' : 'POST';
-        const res = await api(url, { method, body: { area_id: areaId, producto_id: productoId, cantidad } });
+        const res = await api('/api/audit/registros/lote', {
+            method: 'POST',
+            body: { area_id: areaId, productos: lineas }
+        });
         const data = await res.json();
         if (data.success) {
             showToast(data.message, 'success');
@@ -422,6 +558,10 @@ async function guardarRegistro() {
             loadRegistros();
         } else { showToast(data.message, 'error'); }
     } catch (e) { showToast('Error de conexión', 'error'); }
+    finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar';
+    }
 }
 
 function deleteRegistro(id, codigo) {
@@ -470,9 +610,6 @@ function initSearchableSelect(inputId, dropdownId, hiddenId, getItemsFn, labelKe
                 hidden.value = el.dataset.id;
                 input.value = el.dataset.name;
                 dropdown.classList.add('d-none');
-                if (autoSku) {
-                    document.getElementById('registroSku').value = el.dataset.sku;
-                }
             });
         });
     });
